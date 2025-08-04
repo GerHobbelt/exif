@@ -34,7 +34,7 @@ exif_tag_from_string (const char *string)
 	const char *name;
 
 	if (!string)
-		return EXIF_INVALID_TAG;
+		return (ExifTag)EXIF_INVALID_TAG;
 
 	/* Is the string a decimal number? */
 	if (strspn (string, "0123456789") == strlen (string))
@@ -55,7 +55,7 @@ exif_tag_from_string (const char *string)
 		if (name && !strcmp (string, name))
 			return (tag);
 	}
-	return EXIF_INVALID_TAG;
+	return (ExifTag)EXIF_INVALID_TAG;
 }
 
 ExifIfd
