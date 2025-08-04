@@ -110,7 +110,7 @@ log_func (ExifLog *log, ExifLogCode code, const char *domain,
 	 * fatal.
 	 */
 	switch (code) {
-	case -1:
+	case -1: // warning C4063 : case '-1' is not a valid value for switch of enum 'ExifLogCode'
 		put_colorstring (stderr, COL_RED);
 		vfprintf (stderr, format, args);
 		fprintf (stderr, "\n");
@@ -245,7 +245,9 @@ main (int argc, const char **argv)
 	ExifLog *log = NULL;
 	char fout[1024] = {0, };
 	int continue_without_file = 0;
+#ifdef HAVE_SIGACTION
 	struct sigaction sa = {};
+#endif
 
 #ifdef ENABLE_GLIBC_MEMDEBUG
 	mcheck (NULL);
@@ -260,11 +262,13 @@ main (int argc, const char **argv)
 	textdomain (PACKAGE);
 #endif
 
+#ifdef HAVE_SIGACTION
 	/* Return EPIPE errno instead of a SIGPIPE signal on a bad pipe read/write */
 	sa.sa_handler = SIG_IGN;
 	sa.sa_flags = 0;
 	sigemptyset(&sa.sa_mask);
 	sigaction(SIGPIPE, &sa, NULL);
+#endif
 
 	ctx = poptGetContext (PACKAGE, argc, argv, options, 0);
 	poptSetOtherOptionHelp (ctx, _("[OPTION...] file"));
@@ -292,7 +296,7 @@ main (int argc, const char **argv)
 	}
 	if (tag_string) {
 		p.tag = exif_tag_from_string (tag_string);
-		if (p.tag == EXIF_INVALID_TAG) {
+		if (p.tag == (ExifTag)EXIF_INVALID_TAG) {
 			exif_log (log, -1, "exif", _("Invalid tag '%s'!"),
 				tag_string);
 			return 1;
@@ -302,7 +306,7 @@ main (int argc, const char **argv)
 	}
 
 	/* Check for all necessary parameters */
-	if ((p.tag == EXIF_INVALID_TAG) && (p.set_value || show_description)) {
+	if ((p.tag == (ExifTag)EXIF_INVALID_TAG) && (p.set_value || show_description)) {
 		exif_log (log, -1, "exif", _("You need to specify a tag!"));
 		return 1;
 	}
@@ -452,7 +456,7 @@ main (int argc, const char **argv)
 		/* These options are mutually exclusive */
 		if (list_tags)
 			action_tag_table (ed, p);
-		else if ((p.tag != EXIF_INVALID_TAG) &&
+		else if ((p.tag != (ExifTag)EXIF_INVALID_TAG) &&
 			 !p.set_value && !remove_tag)
 			action_show_tag (ed, log, p);
 		else if (extract_thumbnail)
