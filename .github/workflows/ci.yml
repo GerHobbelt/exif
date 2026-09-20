@@ -33,7 +33,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, ubuntu-22.04, ubuntu-20.04]
+        os: [ubuntu-24.04, ubuntu-22.04]
         cc: [gcc, clang]
         packages: [build-essential clang autoconf automake autopoint libtool gettext libpopt-dev]
         cflags: [-Wall -Wextra -O2]
@@ -60,7 +60,7 @@ jobs:
             configure: --disable-nls
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.0
 
       - name: 'install prereqs'
         run: sudo apt-get install -y --no-install-suggests --no-install-recommends ${{ matrix.packages }}
@@ -98,7 +98,7 @@ jobs:
             ldflags: -g -O0 --coverage
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.0
       - name: 'install prereqs'
         run: sudo apt-get install -y --no-install-suggests --no-install-recommends ${{ matrix.packages }}
       - name: 'install libexif-testsuite'
