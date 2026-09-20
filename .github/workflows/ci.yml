@@ -58,7 +58,9 @@ jobs:
             configure: --disable-nls
 
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: 'install prereqs'
         run: sudo apt-get install -y --no-install-suggests --no-install-recommends ${{ matrix.packages }}
@@ -96,7 +98,9 @@ jobs:
             ldflags: -g -O0 --coverage
 
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: 'install prereqs'
         run: sudo apt-get install -y --no-install-suggests --no-install-recommends ${{ matrix.packages }}
       - name: 'install libexif-testsuite'
@@ -141,7 +145,9 @@ jobs:
         arch: ['x86_64', 'aarch64']
         cflags: [-Wall -Wextra -O2]
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
       - name: start VM
         uses: cross-platform-actions/action@v1
         with:
@@ -176,3 +182,45 @@ jobs:
         run: make -j 3 V=1 check || { tail -400 test/test-suite.log; false; }
       - name: install test
         run: make -j 3 V=1 install
+
+  build-alpine:
+    runs-on: ubuntu-latest
+    container: alpine:${{ matrix.osver }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        osver: ['3.20', '3.24']
+        build:
+          - install: gcc make autoconf automake libtool musl-dev gettext-dev popt-dev pkgconf
+            cc: gcc
+            cflags: -Wall -Wextra -O3
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: install deps
+        run: |
+          apk add --no-cache git ${{ matrix.build.install }}
+
+      - name: 'install & build libexif'
+        run: git clone --depth=1 https://github.com/libexif/libexif.git /tmp/libexif && cd /tmp/libexif && autoreconf -sivf && ./configure --disable-dependency-tracking --prefix=/tmp/libexif/install CC="${{ matrix.build.cc }}" && make V=1 && make V=1 install
+
+      - name: 'configure'
+        run: autoreconf -sfiv && ./configure --disable-dependency-tracking --prefix="${PWD}/install" CFLAGS="$CFLAGS" PKG_CONFIG_PATH="/tmp/libexif/install/lib/pkgconfig" CFLAGS="${{ matrix.build.cflags }}" LDFLAGS="${{ matrix.build.ldflags }}" CC="${{ matrix.build.cc }}" ${{ matrix.build.configure }} || { tail -400 config.log; false; }
+
+      - name: 'make'
+        run: make V=1 ${{ matrix.build.mflags }}
+
+      - name: smoke test
+        run: exif/exif --version
+
+      - name: 'test'
+        run: make V=1 check || { tail -n 500 test*/test-suite.log; false; }
+
+      - name: 'install'
+        run: |
+          make V=1 install
+          ls -l install/bin/exif
